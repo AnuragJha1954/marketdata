@@ -1,0 +1,116 @@
+{% load custom_filters %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>NIFTY Option Chain</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #fafafa;
+            margin: 20px;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        p {
+            text-align: center;
+            font-size: 14px;
+            color: #555;
+        }
+        table {
+            border-collapse: collapse;
+            width: 96%;
+            margin: 20px auto;
+            font-size: 13px;
+            background: white;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            text-align: center;
+        }
+        th {
+            background: #f9f9f9;
+            font-weight: 600;
+        }
+        .positive {
+            color: #059669;
+            font-weight: bold;
+        }
+        .negative {
+            color: #dc2626;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h2>NIFTY Option Chain (Open Interest)</h2>
+    <p>Current LTP: <b>{{ ltp }}</b></p>
+
+    <!-- First Table -->
+    <table>
+        <tr>
+            <th>CE OI Change</th>
+            <th>CE Open Interest</th>
+            <th>Strike Price</th>
+            <th>PE Open Interest</th>
+            <th>PE OI Change</th>
+        </tr>
+        {% for row in table %}
+        <tr>
+            <td>
+                {% if row.ce_diff > 0 %}
+                    <span class="positive">+{{ row.ce_diff }}</span>
+                {% elif row.ce_diff < 0 %}
+                    <span class="negative">{{ row.ce_diff }}</span>
+                {% else %}{{ row.ce_diff }}{% endif %}
+            </td>
+            <td>{{ row.ce }}</td>
+            <td><b>{{ row.strike }}</b></td>
+            <td>{{ row.pe }}</td>
+            <td>
+                {% if row.pe_diff > 0 %}
+                    <span class="positive">+{{ row.pe_diff }}</span>
+                {% elif row.pe_diff < 0 %}
+                    <span class="negative">{{ row.pe_diff }}</span>
+                {% else %}{{ row.pe_diff }}{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h2>Open Interest Difference (Last Hour)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th rowspan="2">Time</th>
+                {% for strike in strikes %}
+                    <th colspan="2">{{ strike }}</th>
+                {% endfor %}
+            </tr>
+            <tr>
+                {% for strike in strikes %}
+                    <th>CE</th>
+                    <th>PE</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in data %}
+                <tr>
+                    <td>{{ row.time }}</td>
+                    {% for strike_data in row.strikes %}
+                        <td>{{ strike_data.ce }}</td>
+                        <td>{{ strike_data.pe }}</td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

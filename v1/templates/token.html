@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manage Auth Token</title>
+    <style>
+        /* Base styles */
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background: #f0f2f5;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 40px 20px;
+        }
+        
+        /* Typewriter heading */
+        .typewriter {
+            font-size: 2.5rem;
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+            white-space: nowrap;
+            border-right: 2px solid #333;
+            width: 0;
+            animation:
+                typing 3s steps(25, end) forwards,
+                blink 0.7s steps(25, end) infinite alternate;
+            margin-bottom: 30px;
+        }
+
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 19ch } /* adjust to fit your text length */
+        }
+
+        @keyframes blink {
+            50% { border-color: transparent }
+        }
+
+        /* Container for the box */
+        .box {
+            background: #fff;
+            padding: 30px 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .box h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #444;
+        }
+
+        .box p {
+            font-size: 0.95rem;
+            color: #555;
+        }
+
+        .box p strong {
+            color: #222;
+        }
+
+        form {
+            margin-top: 15px;
+            text-align: left;
+        }
+
+        form label {
+            display: block;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        form input, form textarea {
+            width: 100%;
+            padding: 8px 10px;
+            margin-top: 6px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+
+        form button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 20px;
+            background: #005fff;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        form button:hover {
+            background: #0041b3;
+        }
+
+        .chain-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 20px;
+            background: #20c997;
+            color: white;
+            font-size: 1rem;
+            border: none;
+            border-radius: 6px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background 0.2s ease-in-out;
+        }
+
+        .chain-btn:hover {
+            background: #1aa47a;
+        }
+    </style>
+</head>
+<body>
+    <div class="typewriter">Welcome to the Tool</div>
+    <div class="box">
+        <h2>Manage Access Token</h2>
+
+        {% if last_updated %}
+            <p><strong>Last Updated At:</strong> {{ last_updated }}</p>
+        {% else %}
+            <p>No token stored yet.</p>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Save Token</button>
+        </form>
+
+        <a href="/data/chain/" class="chain-btn">Get Option Chain</a>
+    </div>
+</body>
+</html>
