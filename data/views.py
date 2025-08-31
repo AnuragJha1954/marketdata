@@ -487,7 +487,7 @@ def fetch_option_chain(request):
             per_strike[strike][opt_type] = {"open_interest": oi, "oi_diff": oi_diff}
 
     # 4) Save into OIDifference + main table
-    table = []
+    table_oi = []
     for strike in strikes:
         ce_oi = per_strike[strike]["CE"]["open_interest"]
         ce_diff = per_strike[strike]["CE"]["oi_diff"]
@@ -504,7 +504,7 @@ def fetch_option_chain(request):
             pe_diff=pe_diff,
         )
         
-        table.append({
+        table_oi.append({
             "strike": strike,
             "ce": ce_oi,
             "ce_diff": ce_diff,
@@ -513,14 +513,10 @@ def fetch_option_chain(request):
         })
     
     
-    
     now = timezone.localtime()
     one_hour_ago = now - timedelta(hours=1)
-    # print(now.date())
-    # print(now.time())
-    # print(one_hour_ago.time())
 
-    # Query past hour data
+    # Fetch DB values
     diffs = (
         OIDifference.objects.filter(
             date=now.date(),
@@ -530,74 +526,124 @@ def fetch_option_chain(request):
         .values("time", "strike", "ce_diff", "pe_diff")
         .order_by("time")
     )
-    # print(list(diffs))
-    # Track all strikes seen
-    strikes_seen = sorted({row["strike"] for row in diffs})
-    # print(strikes_seen)
 
-    # Organize data by time
-    temp_data = {}
-    for row in diffs:
-        formatted_time = row["time"].strftime("%H:%M")
-        if formatted_time not in temp_data:
-            temp_data[formatted_time] = {}
-        temp_data[formatted_time][row["strike"]] = {
-            "CE": row["ce_diff"],
-            "PE": row["pe_diff"]
+    # Reshape into {time: {strike: {ce_diff, pe_diff}}}
+    table = {}
+    for d in diffs:
+        t = d["time"].strftime("%H:%M")
+        if t not in table:
+            table[t] = {}
+        table[t][d["strike"]] = {
+            "ce_diff": d["ce_diff"],
+            "pe_diff": d["pe_diff"],
         }
 
-    # Build minute-wise data for past hour
-    final_data = []
-    current_time = one_hour_ago.replace(second=0, microsecond=0)
-    last_values = {strike: {"CE": 0, "PE": 0} for strike in strikes_seen}
+    # Collect all strikes seen in this hour
+    strikes = sorted({d["strike"] for d in diffs})
 
-    while current_time <= now:
-        formatted_time = current_time.strftime("%H:%M")
-        
-        # Update last_values if we have data for this time
-        if formatted_time in temp_data:
-            for strike, vals in temp_data[formatted_time].items():
-                last_values[strike]["CE"] = vals["CE"]
-                last_values[strike]["PE"] = vals["PE"]
+    # Generate full minute list (latest first → oldest last)
+    full_minutes = [
+        (now - timedelta(minutes=i)).strftime("%H:%M")
+        for i in range(60)
+    ]
 
-        # Create row with nested structure
-        row_data = {
-            "time": formatted_time,
-            "strikes": []
-        }
-        
-        for strike in strikes_seen:
-            # Convert to float first, then to int if it's a whole number
-            ce_val = float(last_values[strike]["CE"]) if last_values[strike]["CE"] else 0.0
-            pe_val = float(last_values[strike]["PE"]) if last_values[strike]["PE"] else 0.0
-            
-            # Convert to int only if it's a whole number
-            ce_display = int(ce_val) if ce_val == int(ce_val) else ce_val
-            pe_display = int(pe_val) if pe_val == int(pe_val) else pe_val
-            
-            row_data["strikes"].append({
-                "strike": strike,
-                "ce": ce_display,
-                "pe": pe_display
-            })
-        
-        final_data.append(row_data)
-        current_time += timedelta(minutes=1)
+    # Ensure every minute has every strike (default 0)
+    complete_table = {}
+    for t in full_minutes:
+        complete_table[t] = {}
+        for s in strikes:
+            complete_table[t][s] = table.get(t, {}).get(s, {"ce_diff": 0, "pe_diff": 0})
 
     context = {
-        "data": final_data,
-        "strikes": strikes_seen
+        "final_data": complete_table,
+        "strikes": strikes,
     }
+    
+    
+    # now = timezone.localtime()
+    # one_hour_ago = now - timedelta(hours=1)
+    # # print(now.date())
+    # # print(now.time())
+    # # print(one_hour_ago.time())
+
+    # # Query past hour data
+    # diffs = (
+    #     OIDifference.objects.filter(
+    #         date=now.date(),
+    #         time__gte=one_hour_ago.time(),
+    #         time__lte=now.time()
+    #     )
+    #     .values("time", "strike", "ce_diff", "pe_diff")
+    #     .order_by("time")
+    # )
+    # # print(list(diffs))
+    # # Track all strikes seen
+    # strikes_seen = sorted({row["strike"] for row in diffs})
+    # # print(strikes_seen)
+
+    # # Organize data by time
+    # temp_data = {}
+    # for row in diffs:
+    #     formatted_time = row["time"].strftime("%H:%M")
+    #     if formatted_time not in temp_data:
+    #         temp_data[formatted_time] = {}
+    #     temp_data[formatted_time][row["strike"]] = {
+    #         "CE": row["ce_diff"],
+    #         "PE": row["pe_diff"]
+    #     }
+
+    # # Build minute-wise data for past hour
+    # final_data = []
+    # current_time = one_hour_ago.replace(second=0, microsecond=0)
+    # last_values = {strike: {"CE": 0, "PE": 0} for strike in strikes_seen}
+
+    # while current_time <= now:
+    #     formatted_time = current_time.strftime("%H:%M")
+        
+    #     # Update last_values if we have data for this time
+    #     if formatted_time in temp_data:
+    #         for strike, vals in temp_data[formatted_time].items():
+    #             last_values[strike]["CE"] = vals["CE"]
+    #             last_values[strike]["PE"] = vals["PE"]
+
+    #     # Create row with nested structure
+    #     row_data = {
+    #         "time": formatted_time,
+    #         "strikes": []
+    #     }
+        
+    #     for strike in strikes_seen:
+    #         # Convert to float first, then to int if it's a whole number
+    #         ce_val = float(last_values[strike]["CE"]) if last_values[strike]["CE"] else 0.0
+    #         pe_val = float(last_values[strike]["PE"]) if last_values[strike]["PE"] else 0.0
+            
+    #         # Convert to int only if it's a whole number
+    #         ce_display = int(ce_val) if ce_val == int(ce_val) else ce_val
+    #         pe_display = int(pe_val) if pe_val == int(pe_val) else pe_val
+            
+    #         row_data["strikes"].append({
+    #             "strike": strike,
+    #             "ce": ce_display,
+    #             "pe": pe_display
+    #         })
+        
+    #     final_data.append(row_data)
+    #     current_time += timedelta(minutes=1)
+
+    # context = {
+    #     "data": final_data,
+    #     "strikes": strikes_seen
+    # }
 
     # print(final_data)
     # print(strikes)
     
     return render(request, "option_chain.html", {
         "ltp": ltp,
-        "table": table,
+        "table": table_oi,
         # "time_table": time_table,
         "strikes": strikes,
-        "data": final_data    
+        "final_data" : complete_table    
         # "strikes_keys": strikes_keys,   # ✅ new
     })
     

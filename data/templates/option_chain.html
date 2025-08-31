@@ -46,6 +46,9 @@
             color: #dc2626;
             font-weight: bold;
         }
+        .neutral  {
+            color: #000000; 
+        }
     </style>
 </head>
 <body>
@@ -84,29 +87,28 @@
         {% endfor %}
     </table>
 
-    <h2>Open Interest Difference (Last Hour)</h2>
+    <h2>Open Interest Difference (Last 1 Hour)</h2>
     <table>
         <thead>
             <tr>
-                <th rowspan="2">Time</th>
+                <th>Time</th>
                 {% for strike in strikes %}
-                    <th colspan="2">{{ strike }}</th>
-                {% endfor %}
-            </tr>
-            <tr>
-                {% for strike in strikes %}
-                    <th>CE</th>
-                    <th>PE</th>
+                    <th>{{ strike }} CE Δ</th>
+                    <th>{{ strike }} PE Δ</th>
                 {% endfor %}
             </tr>
         </thead>
         <tbody>
-            {% for row in data %}
-                <tr>
-                    <td>{{ row.time }}</td>
-                    {% for strike_data in row.strikes %}
-                        <td>{{ strike_data.ce }}</td>
-                        <td>{{ strike_data.pe }}</td>
+            {% for time, data in final_data.items %}
+                <tr class="{% if forloop.first %}latest{% endif %}">
+                    <td>{{ time }}</td>
+                    {% for strike in strikes %}
+                        {% with ce=data|get_item:strike|get_item:"ce_diff"|default:"0" %}
+                            <td class="{{ ce|colorize }}">{{ ce }} </td>
+                        {% endwith %}
+                        {% with pe=data|get_item:strike|get_item:"pe_diff"|default:"0" %}
+                            <td class="{{ pe|colorize }}">{{ pe }}</td>
+                        {% endwith %}
                     {% endfor %}
                 </tr>
             {% endfor %}
