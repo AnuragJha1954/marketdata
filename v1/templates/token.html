@@ -79,13 +79,15 @@
             color: #555;
         }
 
-        form input, form textarea {
+        /* MODIFICATION: Target all inputs in the box for consistent styling */
+        .box input, .box textarea {
             width: 100%;
             padding: 8px 10px;
             margin-top: 6px;
             border: 1px solid #ccc;
             border-radius: 6px;
             font-size: 0.95rem;
+            box-sizing: border-box; /* Ensures padding doesn't affect width */
         }
 
         form button {
@@ -106,7 +108,9 @@
         }
 
         .chain-btn {
-            display: inline-block;
+            display: block; /* MODIFICATION: Make it a block element */
+            width: 100%;     /* MODIFICATION: Make it full-width */
+            box-sizing: border-box; /* Ensures padding doesn't affect width */
             margin-top: 20px;
             padding: 12px 20px;
             background: #20c997;
@@ -122,6 +126,14 @@
         .chain-btn:hover {
             background: #1aa47a;
         }
+        
+        /* MODIFICATION: Style for the separator */
+        hr {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 30px 0;
+        }
+
     </style>
 </head>
 <body>
@@ -141,7 +153,42 @@
             <button type="submit">Save Token</button>
         </form>
 
-        <a href="/data/chain/" class="chain-btn">Get Option Chain</a>
+        <hr>
+
+        <div class="option-chain-section">
+            <h2>Select Expiry Date</h2>
+            <input type="date" id="expiryDate">
+            <a href="javascript:void(0);" onclick="goToOptionChain()" class="chain-btn">Get Option Chain</a>
+        </div>
     </div>
+
+    <script>
+        function goToOptionChain() {
+            // Get the date from the input field
+            const dateInput = document.getElementById('expiryDate');
+            const selectedDate = dateInput.value;
+
+            // Check if a date is selected
+            if (!selectedDate) {
+                alert("Please select an expiry date.");
+                return;
+            }
+
+            // Create a Date object
+            const date = new Date(selectedDate);
+
+            // Format the date to yymdd string
+            const year = date.getFullYear().toString().slice(-2);
+            const month = date.getMonth() + 1; // getMonth() is 0-indexed, so we add 1
+            const day = String(date.getDate()).padStart(2, '0');
+            const expiryString = `${year}${month}${day}`;
+
+            // Construct the URL with the query parameter
+            const url = `/data/chain/?expiry=${expiryString}`;
+
+            // Navigate to the URL
+            window.location.href = url;
+        }
+    </script>
 </body>
 </html>

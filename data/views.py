@@ -442,7 +442,10 @@ def fetch_option_chain(request):
     strikes = [base_strike - 100, base_strike - 50, base_strike, base_strike + 50, base_strike + 100]
 
     today = timezone.localdate()
-    expiry = today.strftime("%b").upper()
+    # expiry = today.strftime("%b").upper()
+    # expiry = today.strftime('%y') + str(today.month) + today.strftime('%d')
+    expiry = request.GET.get('expiry')
+    
 
     # --- helper for fetching one option quote ---
     def fetch_quote(symbol, strike, opt_type):
@@ -475,7 +478,8 @@ def fetch_option_chain(request):
     tasks = []
     for strike in strikes:
         for opt_type in ["PE", "CE"]:
-            symbol = f"NIFTY25{expiry}{strike}{opt_type}"
+            symbol = f"NIFTY{expiry}{strike}{opt_type}"
+            # print(symbol)
             tasks.append((symbol, strike, opt_type))
 
     # 3) Run all requests concurrently
